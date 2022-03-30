@@ -1001,76 +1001,6 @@ class high_dim():
         return {'beta': res['x'][2*n**2+p:],  'lambda': Lambda}
 
 
-
-class cv_lambda():
-    '''
-        Cross-Validated Penalized Conquer
-    '''
-    penalties = ["L1", "SCAD", "MCP"]
-    opt = {'nsim': 200, 'phi': 0.1, 'gamma': 1.25, 'max_iter': 1e3, 'tol': 1e-4, 'irw_tol': 1e-4}
-
-    def __init__(self, X, Y, intercept=True, options={}):
-        self.n, self.p = X.shape
-        self.X, self.Y = X, Y.reshape(self.n)
-        self.itcp = intercept
-        self.opt.update(options)
-
-    def divide_sample(self, nfolds=5):
-        '''
-            Divide the Sample into V=nfolds Folds
-        '''
-        idx, folds = np.arange(self.n), []
-        for v in range(nfolds):
-            folds.append(idx[v::nfolds])
-        return idx, folds
-
-    def fit(self, tau=0.5, h=None, lambda_seq=np.array([]), nlambda=40, nfolds=5,
-            kernel="Laplacian", penalty="SCAD", a=3.7, nstep=5, standardize=True, adjust=True):
-
-        sqr = high_dim(self.X, self.Y, self.itcp, self.opt)
-        if h == None: h = sqr.bandwidth(tau)
-
-        if not lambda_seq.any():
-            lambda_max = np.max(sqr.self_tuning(tau, standardize))
-            lambda_seq = np.linspace(0.25 * lambda_max, 1.25 * lambda_max, nlambda)
-        else:
-            nlambda = len(lambda_seq)
-
-        if penalty not in self.penalties: raise ValueError("penalty must be either L1, SCAD or MCP")
-
-        check_loss = lambda x: np.mean(np.where(x >= 0, tau * x, (tau - 1) * x))  # empirical check loss
-        idx, folds = self.divide_sample(nfolds)
-        val_err = np.zeros((nfolds, nlambda))
-        for v in range(nfolds):
-            X_train, Y_train = self.X[np.setdiff1d(idx, folds[v]), :], self.Y[np.setdiff1d(idx, folds[v])]
-            X_val, Y_val = self.X[folds[v], :], self.Y[folds[v]]
-            sqr_train = high_dim(X_train, Y_train, self.itcp, self.opt)
-
-            if penalty == "L1":
-                model = sqr_train.l1_path(lambda_seq, tau, h, kernel, 'ascend', standardize, adjust)
-            else:
-                model = sqr_train.irw_path(lambda_seq, tau, h, kernel, 'ascend', penalty, a, nstep, standardize, adjust)
-
-            val_err[v, :] = np.array([check_loss(Y_val - model['beta_seq'][0, l] * self.itcp \
-                                                 - X_val.dot(model['beta_seq'][self.itcp:, l])) for l in
-                                      range(nlambda)])
-
-        cv_err = np.mean(val_err, axis=0)
-        cv_min = min(cv_err)
-        lambda_min = model['lambda_seq'][cv_err == cv_min][0]
-        if penalty == "L1":
-            cv_model = sqr.l1(lambda_min, tau, h, kernel, standardize=standardize, adjust=adjust)
-        else:
-            cv_model = sqr.irw(lambda_min, tau, h, kernel, penalty=penalty, a=a, nstep=nstep, \
-                               standardize=standardize, adjust=adjust)
-
-        return {'cv_beta': cv_model['beta'],
-                'cv_res': cv_model['res'],
-                'lambda_min': lambda_min,
-                'lambda_seq': model['lambda_seq'],
-                'min_cv_err': cv_min,
-                'cv_err': cv_err}
-
 class cv_lambda_cqr():
     '''
         Cross-Validated Penalized Composite Conquer
@@ -1150,6 +1080,8 @@ class cv_lambda_cqr():
                 'lambda_seq': model['lambda_seq'],
                 'min_cv_err': cv_min,
                 'cv_err': cv_err}
+
+
 class cv_lambda_cqrp_admm():
     '''
         Cross-Validated Penalized CQR_ADMM
