@@ -4,7 +4,7 @@ from scipy.stats import norm
 import math
 from scipy.optimize import linprog
 
-class high_dim(low_dim):
+class high_dim():
     '''
         Regularized Convolution Smoothed Composite Quantile Regression via ILAMM
                         (iterative local adaptive majorize-minimization)
@@ -170,6 +170,17 @@ class high_dim(low_dim):
 
     def cqrp_admm(self, Lambda=np.array([]), tau=np.array([]), sg=0.01, alpha0=np.array([]),
                beta0=np.array([]), e1=1e-3, e2=1e-3,maxit=20000, lambdaparameter=1.3):
+        '''
+        ADMM based algorithm for CQR
+
+        Reference
+        ---------
+        Sparse composite quantile regression in ultrahigh dimensions with tuning parameter calibration.
+        by Yuwen Gu and Hui Zou
+        IEEE Transactions on Information Theory 66: 7132--7154.
+
+        '''
+
         p = self.p
         n = self.n
         K = len(tau)
@@ -230,6 +241,18 @@ class high_dim(low_dim):
 
     def cqrp_admm_smw(self, Lambda=np.array([]), tau=np.array([]), sg=0.01, alpha0=np.array([]),
                beta0=np.array([]), e1=1e-3, e2=1e-3,maxit=20000, lambdaparameter=0.97):
+        '''
+            ADMM based algorithm for CQR.
+            Sherman-Morrison-Woodbury formula has been applied.
+            Demeaning the design matrix is required for this algorithm to run faster
+
+            Reference
+            ---------
+            Sparse composite quantile regression in ultrahigh dimensions with tuning parameter calibration.
+            by Yuwen Gu and Hui Zou
+            IEEE Transactions on Information Theory 66: 7132--7154.
+
+        '''
         p = self.p
         n = self.n
         K = len(tau)
@@ -295,6 +318,16 @@ class high_dim(low_dim):
 
     def cqrp_admm_smw_withoutdemean(self, Lambda=np.array([]), tau=np.array([]), sg=0.01, alpha0=np.array([]),
                beta0=np.array([]), e1=1e-3, e2=1e-3,maxit=20000, lambdaparameter=1.32):
+        '''
+            ADMM based algorithm for CQR.
+            Algorithm with out demeaning the design matrix.
+            Reference
+            ---------
+            Sparse composite quantile regression in ultrahigh dimensions with tuning parameter calibration.
+            by Yuwen Gu and Hui Zou
+            IEEE Transactions on Information Theory 66: 7132--7154.
+
+        '''
         p = self.p
         n = self.n
         K = len(tau)
@@ -361,7 +394,7 @@ class high_dim(low_dim):
     def cqr_l1(self, Lambda=np.array([]), tau=np.array([]), h=None, kernel="Laplacian", alpha0=np.array([]),
                beta0=np.array([]), res=np.array([]), standardize=True, adjust=True, weight=np.array([]),lambdaparameter=0.97):
         '''
-            L1-Penalized Convolution Smoothed Composite Quantile Regression (l1-cqr-conquer)
+            L1-Penalized Convolution Smoothed Composite Quantile Regression (l1-composite-conquer)
 
         Arguments
         ---------
@@ -390,6 +423,7 @@ class high_dim(low_dim):
         Returns
         -------
         'alpha': a numpy array of estimated coefficients for alpha terms.
+
         'beta' : a numpy array of estimated coefficients for beta terms.
 
         'res' : an n-vector of fitted residuals.
@@ -398,6 +432,7 @@ class high_dim(low_dim):
 
         'lambda' : lambda value.
 
+        'h' : smoothing parameter.
         '''
         K = len(tau)
 
@@ -413,10 +448,6 @@ class high_dim(low_dim):
         if h == None: h = self.bandwidth(max(tau))
 
         if not beta0.any():
-            '''
-            model = self.l1_retire(Lambda, np.mean(tau), standardize=standardize, adjust=False)
-            beta0, res, count = model['beta'], model['res'], model['niter']
-            '''
             beta0 = np.zeros(self.p)
             count = 0
         else:
@@ -473,7 +504,7 @@ class high_dim(low_dim):
                 beta0=np.array([]), res=np.array([]),
                 penalty="SCAD", a=3.7, nstep=5, standardize=True, adjust=True, weight=np.array([]),lambdaparameter=1.6):
         '''
-            Iteratively Reweighted L1-Penalized Conquer (irw-l1-conquer)
+        Iteratively Reweighted L1-Penalized Conquer (irw-composite-conquer)
 
         Arguments
         ----------
@@ -485,13 +516,17 @@ class high_dim(low_dim):
 
         Returns
         -------
-        'beta' : a numpy array of estimated coefficients.
+        'alpha': a numpy array of estimated coefficients for alpha terms.
+
+        'beta' : a numpy array of estimated coefficients for beta terms.
 
         'res' : an n-vector of fitted residuals.
 
-        'nirw' : number of reweighted penalization steps.
+        'niter' : number of iterations.
 
         'lambda' : lambda value.
+
+        'h' :   smoothing parameter.
         '''
 
         K = len(tau)
@@ -531,7 +566,7 @@ class high_dim(low_dim):
     def cqr_l1_path(self, lambda_seq, tau, h=None, kernel="Laplacian", \
                     order="ascend", standardize=True, adjust=True):
         '''
-            Solution Path of L1-Penalized Conquer
+            Solution Path of L1-Penalized Composite Conquer
 
         Arguments
         ---------
@@ -597,7 +632,6 @@ class high_dim(low_dim):
 
         '''
 
-
         if order == 'ascend':
             lambda_seq = np.sort(lambda_seq)
         elif order == 'descend':
@@ -619,7 +653,7 @@ class high_dim(low_dim):
 
     def cqrp_admm_path_nodemean(self, lambda_seq, tau, order="ascend", sg=0.03, maxit=20000):
         '''
-            Solution Path of L1-Penalized Conquer
+            Solution Path of L1-Penalized CQR via ADMM, without demeaning
 
         Arguments
         ---------
@@ -661,7 +695,7 @@ class high_dim(low_dim):
     def cqr_irw_path(self, lambda_seq, tau=np.array([]), h=None, kernel="Laplacian", order="ascend",
                      penalty="SCAD", a=3.7, nstep=5, standardize=True, adjust=True):
         '''
-            Solution Path of Iteratively Reweighted L1-Conquer
+            Solution Path of Iteratively Reweighted L1 Composite Conquer
 
         Arguments
         ---------
@@ -845,7 +879,7 @@ class high_dim(low_dim):
                 kernel="Laplacian", order='ascend', max_size=False, Cn=None, \
                 penalty="SCAD", a=3.7, nstep=5, standardize=True, adjust=True):
         '''
-            Model Selection via Bayesian Information Criterion
+            Model Selection via Bayesian Information Criterion, non scale invariant.
 
         Reference
         ---------
