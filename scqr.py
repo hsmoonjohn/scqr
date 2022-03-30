@@ -4,15 +4,19 @@ from scipy.stats import norm
 import math
 from scipy.optimize import linprog
 
-class low_dim():
+class high_dim(low_dim):
     '''
-        Convolution Smoothed Quantile Regression
+        Regularized Convolution Smoothed Composite Quantile Regression via ILAMM
+                        (iterative local adaptive majorize-minimization)
     '''
     kernels = ["Laplacian", "Gaussian", "Logistic", "Uniform", "Epanechnikov"]
-    weights = ["Exponential", "Multinomial", "Rademacher", "Gaussian", "Uniform", "Folded-normal"]
-    opt = {'max_iter': 1e3, 'max_lr': 10, 'tol': 1e-4, 'nboot': 200}
+    weights = ['Multinomial', 'Exponential', 'Rademacher']
+    penalties = ["L1", "SCAD", "MCP", "CapppedL1"]
+    opt = {'phi': 0.1, 'gamma': 1.25, 'max_iter': 1e3, 'tol': 1e-5,
+           'irw_tol': 1e-5, 'nsim': 200}
 
-    def __init__(self, X, Y, intercept=True, options=dict()):
+    def __init__(self, X, Y, intercept=True, options={}):
+
         '''
         Arguments
         ---------
@@ -24,18 +28,21 @@ class low_dim():
 
         options : a dictionary of internal statistical and optimization parameters.
 
-            max_iter : maximum numder of iterations in the GD-BB algorithm; default is 500.
+            phi : initial quadratic coefficient parameter in the ILAMM algorithm; default is 0.1.
 
-            max_lr : maximum step size/learning rate.
+            gamma : adaptive search parameter that is larger than 1; default is 1.25.
 
-            tol : the iteration will stop when max{|g_j|: j = 1, ..., p} <= tol
-                  where g_j is the j-th component of the (smoothed) gradient; default is 1e-4.
+            max_iter : maximum numder of iterations in the ILAMM algorithm; default is 1e3.
 
-            nboot : number of bootstrap samples for inference.
+            tol : the ILAMM iteration stops when |beta^{k+1} - beta^k|^2/|beta^k|^2 <= tol; default is 1e-5.
+
+            irw_tol : tolerance parameter for stopping iteratively reweighted L1-penalization; default is 1e-4.
+
+            nsim : number of simulations for computing a data-driven lambda; default is 200.
+
         '''
-        self.n = len(Y)
+        self.n, self.p = X.shape
         self.Y = Y.reshape(self.n)
-        if X.shape[1] >= self.n: raise ValueError("covariate dimension exceeds sample size")
         self.mX, self.sdX = np.mean(X, axis=0), np.std(X, axis=0)
         self.itcp = intercept
         if intercept:
@@ -46,11 +53,7 @@ class low_dim():
 
         self.opt.update(options)
 
-    def bandwidth(self, tau):
-        h0 = min((len(self.mX) + np.log(self.n)) / self.n, 0.5) ** 0.4
-        return max(0.01, h0 * (tau - tau ** 2) ** 0.5)
-
-    def smooth_check(self, x, tau=0.5, h=None, kernel='Laplacian', w=np.array([])):
+    def smooth_check(self, x, tau, h=None, kernel='Laplacian', w=np.array([])):
         if h == None: h = self.bandwidth(tau)
 
         loss1 = lambda x: np.where(x >= 0, tau * x, (tau - 1) * x) + 0.5 * h * np.exp(-abs(x) / h)
@@ -114,55 +117,6 @@ class low_dim():
                                    for b in range(self.opt['nsim'])])
         return 2*cqr_lambda_sim
 
-
-class high_dim(low_dim):
-    '''
-        Regularized Convolution Smoothed Quantile Regression via ILAMM
-                        (iterative local adaptive majorize-minimization)
-    '''
-    weights = ['Multinomial', 'Exponential', 'Rademacher']
-    penalties = ["L1", "SCAD", "MCP", "CapppedL1"]
-    opt = {'phi': 0.1, 'gamma': 1.25, 'max_iter': 1e3, 'tol': 1e-5, \
-           'irw_tol': 1e-5, 'nsim': 200, 'nboot': 200}
-
-    def __init__(self, X, Y, intercept=True, options={}):
-
-        '''
-        Arguments
-        ---------
-        X : n by p matrix of covariates; each row is an observation vector.
-
-        Y : n-dimensional vector of response variables.
-
-        intercept : logical flag for adding an intercept to the model.
-
-        options : a dictionary of internal statistical and optimization parameters.
-
-            phi : initial quadratic coefficient parameter in the ILAMM algorithm; default is 0.1.
-
-            gamma : adaptive search parameter that is larger than 1; default is 1.25.
-
-            max_iter : maximum numder of iterations in the ILAMM algorithm; default is 1e3.
-
-            tol : the ILAMM iteration stops when |beta^{k+1} - beta^k|^2/|beta^k|^2 <= tol; default is 1e-5.
-
-            irw_tol : tolerance parameter for stopping iteratively reweighted L1-penalization; default is 1e-4.
-
-            nsim : number of simulations for computing a data-driven lambda; default is 200.
-
-            nboot : number of bootstrap samples for post-selection inference; default is 200.
-        '''
-        self.n, self.p = X.shape
-        self.Y = Y.reshape(self.n)
-        self.mX, self.sdX = np.mean(X, axis=0), np.std(X, axis=0)
-        self.itcp = intercept
-        if intercept:
-            self.X = np.c_[np.ones(self.n), X]
-            self.X1 = np.c_[np.ones(self.n, ), (X - self.mX) / self.sdX]
-        else:
-            self.X, self.X1 = X, X / self.sdX
-
-        self.opt.update(options)
 
     def bandwidth(self, tau):
         h0 = (np.log(self.p) / self.n) ** 0.25
