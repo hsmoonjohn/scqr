@@ -2,17 +2,14 @@ import numpy as np
 import numpy.random as rgt
 import math
 
-class high_dim():
+class cqrpadmm():
     '''
         Regularized Convolution Smoothed Composite Quantile Regression via ILAMM
                         (iterative local adaptive majorize-minimization)
     '''
-    weights = ['Multinomial', 'Exponential', 'Rademacher']
-    penalties = ["L1", "SCAD", "MCP", "CapppedL1"]
-    opt = {'phi': 0.1, 'gamma': 1.25, 'max_iter': 1e3, 'tol': 1e-5,
-           'irw_tol': 1e-5, 'nsim': 200, 'nboot': 200}
 
-    def __init__(self, X, Y, intercept=True,options={}):
+
+    def __init__(self, X, Y, intercept=True):
 
         '''
         Arguments
@@ -22,20 +19,6 @@ class high_dim():
         Y : n-dimensional vector of response variables.
 
         intercept : logical flag for adding an intercept to the model.
-
-        options : a dictionary of internal statistical and optimization parameters.
-
-            phi : initial quadratic coefficient parameter in the ILAMM algorithm; default is 0.1.
-
-            gamma : adaptive search parameter that is larger than 1; default is 1.25.
-
-            max_iter : maximum numder of iterations in the ILAMM algorithm; default is 1e3.
-
-            tol : the ILAMM iteration stops when |beta^{k+1} - beta^k|^2/|beta^k|^2 <= tol; default is 1e-5.
-
-            irw_tol : tolerance parameter for stopping iteratively reweighted L1-penalization; default is 1e-4.
-
-            nsim : number of simulations for computing a data-driven lambda; default is 200.
 
         '''
         self.n, self.p = X.shape
@@ -47,8 +30,6 @@ class high_dim():
             self.X1 = np.c_[np.ones(self.n, ), (X - self.mX) / self.sdX]
         else:
             self.X, self.X1 = X, X / self.sdX
-
-        self.opt.update(options)
 
 
 
@@ -75,7 +56,7 @@ class high_dim():
 
     def cqr_self_tuning(self, XX, tau=np.array([])):
         cqr_lambda_sim = np.array([max(abs(XX.dot(self.cqr_conquer_lambdasim(tau))))
-                                   for b in range(self.opt['nsim'])])
+                                   for b in range(200)])
         return 2*cqr_lambda_sim
 
 
@@ -445,7 +426,7 @@ class cv_lambda_cqrp_admm():
 
     def fit(self, tau, lambda_seq=np.array([]), nlambda=50, nfolds=5):
         K=len(tau)
-        scqr = high_dim(self.X, self.Y, intercept=False)
+        scqr = cqradmm(self.X, self.Y, intercept=False)
 
 
         XX = np.tile(self.X.T, K)
@@ -460,7 +441,7 @@ class cv_lambda_cqrp_admm():
         for v in range(nfolds):
             X_train, Y_train = self.X[np.setdiff1d(idx, folds[v]), :], self.Y[np.setdiff1d(idx, folds[v])]
             X_val, Y_val = self.X[folds[v], :], self.Y[folds[v]]
-            scqr_train = high_dim(X_train, Y_train, intercept=False)
+            scqr_train = cqradmm(X_train, Y_train, intercept=False)
             model = scqr_train.cqrp_admm_path_nodemean(lambda_seq, tau=tau, order='ascend')
 
 
@@ -506,7 +487,7 @@ class cv_lambda_cqrp_admm_fast():
 
     def fit(self, tau, lambda_seq=np.array([]), nlambda=50 , nfolds=5 ):
         K = len(tau)
-        scqr = high_dim(self.X, self.Y, intercept=False)
+        scqr = cqradmm(self.X, self.Y, intercept=False)
 
         XX = np.tile(self.X.T, K)
         if not lambda_seq.any():
@@ -520,7 +501,7 @@ class cv_lambda_cqrp_admm_fast():
         for v in range(nfolds):
             X_train, Y_train = self.X[np.setdiff1d(idx, folds[v]), :]-self.X[np.setdiff1d(idx, folds[v]), :].mean(axis=0), self.Y[np.setdiff1d(idx, folds[v])]-self.X[np.setdiff1d(idx, folds[v]), :].mean(axis=0).dot(self.truebeta)
             X_val, Y_val = self.X[folds[v], :]-self.X[folds[v], :].mean(axis=0), self.Y[folds[v]]-self.X[folds[v], :].mean(axis=0).dot(self.truebeta)
-            scqr_train = high_dim(X_train, Y_train, intercept=False)
+            scqr_train = cqradmm(X_train, Y_train, intercept=False)
             model = scqr_train.cqrp_admm_path(lambda_seq, tau=tau, order='ascend')
 
             val_err[v, :] = np.array(

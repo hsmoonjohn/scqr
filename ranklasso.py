@@ -3,7 +3,7 @@ import numpy.random as rgt
 import math
 from scipy.optimize import linprog
 
-class high_dim():
+class ranklassoregression():
 
 
     def __init__(self, X, Y, intercept=True):
@@ -41,8 +41,6 @@ class high_dim():
             self.X1 = np.c_[np.ones(self.n, ), (X - self.mX) / self.sdX]
         else:
             self.X, self.X1 = X, X / self.sdX
-
-        self.opt.update(options)
 
     def ranklasso(self, Lambda = np.array([]), numsim=500, c=1.01, alpha0=0.1,method='highs'):
         X = self.X
