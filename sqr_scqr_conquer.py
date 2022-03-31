@@ -471,7 +471,7 @@ class high_dim(low_dim):
     '''
     weights = ['Multinomial', 'Exponential', 'Rademacher']
     penalties = ["L1", "SCAD", "MCP", "CapppedL1"]
-    opt = {'phi': 0.1, 'gamma': 1.25, 'max_iter': 1e3, 'tol': 1e-5, \
+    opt = {'phi': 0.1, 'gamma': 1.25, 'max_iter': 1e3, 'tol': 1e-5,
            'irw_tol': 1e-5, 'nsim': 200, 'nboot': 200}
 
     def __init__(self, X, Y, intercept=True, options={}):
