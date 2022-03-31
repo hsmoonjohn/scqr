@@ -60,7 +60,7 @@ class cqrpadmm():
         return 2*cqr_lambda_sim
 
 
-    def cqrp_admm(self, Lambda=np.array([]), tau=np.array([]), sg=0.01, alpha0=np.array([]),
+    def cqrp_admm(self, Lambda=np.array([]), tau=np.array([]), sg=0.03, alpha0=np.array([]),
                beta0=np.array([]), e1=1e-3, e2=1e-3,maxit=20000, lambdaparameter=1.3):
         '''
         ADMM based algorithm for CQR
@@ -131,7 +131,7 @@ class cqrpadmm():
 
         return {'alpha': phi0[:K], 'beta': gamma0, 'lambda': Lambda, 'z':z0, 'u':u0, 'v':v0,'betaseq':betaseq}
 
-    def cqrp_admm_smw(self, Lambda=np.array([]), tau=np.array([]), sg=0.01, alpha0=np.array([]),
+    def cqrp_admm_smw(self, Lambda=np.array([]), tau=np.array([]), sg=0.03, alpha0=np.array([]),
                beta0=np.array([]), e1=1e-3, e2=1e-3,maxit=20000, lambdaparameter=0.97):
         '''
             ADMM based algorithm for CQR.
