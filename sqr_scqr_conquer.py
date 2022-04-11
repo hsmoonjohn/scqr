@@ -733,9 +733,12 @@ class high_dim(low_dim):
 
         weight : an n-vector of observation weights; default is np.array([]) (empty).
 
+        lambdaparameter : a parameter that used in the simulated lambda choice; default is 0.97.
+
         Returns
         -------
         'alpha': a numpy array of estimated coefficients for alpha terms.
+
         'beta' : a numpy array of estimated coefficients for beta terms.
 
         'res' : an n-vector of fitted residuals.
@@ -743,6 +746,8 @@ class high_dim(low_dim):
         'niter' : number of iterations.
 
         'lambda' : lambda value.
+
+        'h' : The smoothing parameter
 
         '''
         K = len(tau)
@@ -876,6 +881,8 @@ class high_dim(low_dim):
 
         nstep : number of iterations/steps of the IRW algorithm; default is 5.
 
+        lambdaparameter : a parameter that used in the simulated lambda choice; default is 1.6.
+
         Returns
         -------
         'beta' : a numpy array of estimated coefficients.
@@ -1005,6 +1012,8 @@ class high_dim(low_dim):
 
         Returns
         -------
+        'alpha_seq' : a sequence of l1-conquer estimates for intercept. Each column corresponds to an estiamte for a lambda value.
+
         'beta_seq' : a sequence of l1-conquer estimates. Each column corresponds to an estiamte for a lambda value.
 
         'res_seq' : a sequence of residual vectors.
@@ -1051,7 +1060,7 @@ class high_dim(low_dim):
         ---------
         lambda_seq : a numpy array of lambda values.
 
-        tau : quantile level; default is 0.5.
+        tau : quantile levels used.
 
         h : smoothing parameter/bandwidth. The default is computed by self.bandwidth().
 
@@ -1118,7 +1127,7 @@ class high_dim(low_dim):
         ---------
         lambda_seq : a numpy array of lambda values.
 
-        tau : quantile level; default is 0.5.
+        tau : quantile levels used.
 
         h : smoothing parameter/bandwidth. The default is computed by self.bandwidth().
 
@@ -1139,6 +1148,8 @@ class high_dim(low_dim):
 
         Returns
         -------
+        'alpha_seq' : a sequence of l1-conquer estimates for intercept. Each column corresponds to an estiamte for a lambda value.
+
         'beta_seq' : a sequence of irw-l1-conquer estimates. Each column corresponds to an estiamte for a lambda value.
 
         'res_seq' : a sequence of residual vectors.
@@ -1258,7 +1269,7 @@ class high_dim(low_dim):
                 kernel="Laplacian", order='ascend', max_size=False, Cn=None, \
                 penalty="SCAD", a=3.7, nstep=5, standardize=True, adjust=True):
         '''
-            Model Selection via Bayesian Information Criterion
+            Model Selection via Bayesian Information Criterion (CQR)
 
         Reference
         ---------
@@ -1268,11 +1279,11 @@ class high_dim(low_dim):
 
         Arguments
         ---------
-        see l1_path() and irw_path()
+        see cqr_l1_path() and cqr_irw_path()
 
         max_size : an upper bound on the selected model size; default is FALSE (no size restriction).
 
-        Cn : a positive constant (that diverges as sample size increases) in the modified BIC; default is log(p).
+        Cn : a positive constant (that diverges as sample size increases) in the modified BIC; default is log(log(n)).
 
         Returns
         -------
