@@ -756,7 +756,7 @@ class high_dim(low_dim):
 
         if not np.array(Lambda).any():
             Lambda = lambdaparameter * np.quantile(self.cqr_self_tuning(XX, tau), 0.95)
-        if h == None: h = self.bandwidth(max(tau))
+        if h == None: h = self.bandwidth(np.mean(tau))
 
         if not beta0.any():
             '''
@@ -897,7 +897,7 @@ class high_dim(low_dim):
 
         if Lambda == None:
             Lambda = lambdaparameter * np.quantile(self.cqr_self_tuning(XX, tau), 0.95)
-        if h == None: h = self.bandwidth(max(tau))
+        if h == None: h = self.bandwidth(np.mean(tau))
 
         if not beta0.any():
             model = self.cqr_l1(Lambda, tau, h, kernel, alpha0=np.zeros(K), beta0=np.zeros(self.p),
